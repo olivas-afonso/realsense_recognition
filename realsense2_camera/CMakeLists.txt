@@ -117,6 +117,11 @@ find_package(tf2 REQUIRED)
 find_package(diagnostic_updater REQUIRED)
 find_package(OpenCV REQUIRED COMPONENTS core)
 
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(OpenCV REQUIRED)
+
 find_package(realsense2 2.55.1)
 if (BUILD_ACCELERATE_GPU_WITH_GLSL)
   find_package(realsense2-gl 2.55.1)
@@ -146,6 +151,10 @@ set(SOURCES
     src/image_publisher.cpp
     src/tfs.cpp
   )
+
+
+add_executable(sign_detection src/sign_detection.cpp)
+ament_target_dependencies(sign_detection rclcpp cv_bridge sensor_msgs OpenCV)
 
 if (BUILD_ACCELERATE_GPU_WITH_GLSL)
   list(APPEND SOURCES src/gl_gpu_processing.cpp)
@@ -373,6 +382,8 @@ if(BUILD_TESTING)
   endforeach()
 
 endif()
+
+install(TARGETS sign_detection DESTINATION lib/${PROJECT_NAME})
 
 # Ament exports
 ament_export_include_directories(include)
