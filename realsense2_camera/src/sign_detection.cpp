@@ -52,20 +52,48 @@ private:
             cv::Mat blurred;
             cv::GaussianBlur(hsv, blurred, cv::Size(5, 5), 0);
 
-            cv::Mat yellow_mask, green_mask, red_mask;
+            cv::Mat yellow_mask, green_mask, red_mask, noise_mask_green, noise_mask_red;
 
-            cv::inRange(hsv, cv::Scalar(0, 70, 50), cv::Scalar(10, 255, 255), red_mask);        // Red (low)
-            cv::Mat red_mask_high;
-            cv::inRange(hsv, cv::Scalar(160, 70, 50), cv::Scalar(180, 255, 255), red_mask_high); // Red (high)
-            red_mask |= red_mask_high;
+            cv::inRange(hsv, cv::Scalar(145, 128, 109), cv::Scalar(180, 255, 255), red_mask);  // Main red range       // Red (low)
+
+            // Noise mask for red (H:7-13)
+            //cv::inRange(hsv, cv::Scalar(7, 154, 46), cv::Scalar(13, 255, 255), noise_mask_red);
+
+            // Remove noise from low red range using XOR
+            //cv::bitwise_xor(red_mask, noise_mask_red, red_mask);
+
+            cv::Mat kernel_red = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(7, 7));  // Bigger than green's (5x5)
+            //cv::Mat kernel_red2 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));  // Bigger than green's (5x5)
+            cv::morphologyEx(red_mask, red_mask, cv::MORPH_OPEN, kernel_red);   // Remove small noise first
+            cv::morphologyEx(red_mask, red_mask, cv::MORPH_CLOSE, kernel_red);  // Fill larger holes
+            
+           
+            
 
 
-            // For your "yellow" (actually green-yellow) sign
-            cv::inRange(hsv, cv::Scalar(27, 90, 103), cv::Scalar(45, 211, 255), yellow_mask);
+            
+            //cv::inRange(hsv, cv::Scalar(160, 70, 50), cv::Scalar(180, 255, 255), red_mask_high); // Red (high)
+            //red_mask |= red_mask_high;
 
 
-            // Green mask (narrowed to exclude yellow-green)
-            cv::inRange(hsv, cv::Scalar(60, 141, 117), cv::Scalar(95, 255, 255), green_mask);  // Starts above your "yellow"
+   
+            cv::inRange(hsv, cv::Scalar(25, 117, 90), cv::Scalar(75, 255, 255), yellow_mask);
+
+
+            // Original green mask (your desired range)
+            //cv::inRange(hsv, cv::Scalar(53, 141, 43), cv::Scalar(95, 255, 255), green_mask);
+            cv::inRange(hsv, cv::Scalar(43, 212, 119), cv::Scalar(85, 255, 255), green_mask);
+            // Noise mask (range you want to exclude)
+            //cv::inRange(hsv, cv::Scalar(86, 141, 43), cv::Scalar(95, 255, 255), noise_mask_green);
+            cv::inRange(hsv, cv::Scalar(43, 212, 119), cv::Scalar(85, 250, 255), noise_mask_green);
+
+            // Remove overlapping noise using XOR
+            cv::bitwise_xor(green_mask, noise_mask_green, green_mask);
+
+            cv::Mat kernel1 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
+            cv::morphologyEx(green_mask, green_mask, cv::MORPH_CLOSE, kernel1);  // Fill holes
+            cv::morphologyEx(green_mask, green_mask, cv::MORPH_OPEN, kernel1);   // Remove small noise
+
 
             // Additional cleanup for yellow (optional but recommended)
             cv::Mat kernel = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(7, 7));
@@ -90,19 +118,27 @@ private:
             cv::imshow("Yellow Mask Debug", yellow_debug);
             cv::imshow("Green Mask Debug", green_debug);
 
-            // Also show the combined mask for reference
-            cv::Mat combined_mask = yellow_mask | green_mask;
+            // --- Add Red Mask Debug (new) ---
+            cv::Mat red_debug = cv::Mat::zeros(frame.size(), CV_8UC3);
+            red_debug.setTo(cv::Scalar(0, 0, 255), red_mask);  // Red in BGR
+            cv::putText(red_debug, "Red Mask", cv::Point(20, 50), 
+                        cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
+            cv::imshow("Red Mask Debug", red_debug);
+
+            // --- Update Combined Mask to Include Red ---
+            cv::Mat combined_mask = yellow_mask | green_mask | red_mask;  // Now includes red
             cv::Mat combined_debug = cv::Mat::zeros(frame.size(), CV_8UC3);
-            combined_debug.setTo(cv::Scalar(0, 255, 255), yellow_mask); // Yellow
-            combined_debug.setTo(cv::Scalar(0, 255, 0), green_mask);    // Green
-            cv::putText(combined_debug, "Combined Mask", cv::Point(20, 50), 
+            combined_debug.setTo(cv::Scalar(0, 255, 255), yellow_mask);  // Yellow
+            combined_debug.setTo(cv::Scalar(0, 255, 0), green_mask);     // Green
+            combined_debug.setTo(cv::Scalar(0, 0, 255), red_mask);       // Red (new)
+            cv::putText(combined_debug, "Combined Mask (Y+G+R)", cv::Point(20, 50), 
                         cv::FONT_HERSHEY_SIMPLEX, 1.0, cv::Scalar(255, 255, 255), 2);
             cv::imshow("Combined Mask Debug", combined_debug);
 
             // Reordered logic (red/green first)
             // Reordered logic (red/green first) - FILLED IN
-            if (cv::countNonZero(red_mask) > 1000) {
-                if (cv::countNonZero(green_mask) > 500) {  // Checker has red + green
+            if (cv::countNonZero(red_mask) > 100) {
+                if (cv::countNonZero(green_mask) > 200) {  // Checker has red + green
                     sign_msg.data = "checker";
                     RCLCPP_INFO(this->get_logger(), "Detected: Checker Sign");
                 } else {  // Only red → Stop sign
@@ -111,7 +147,7 @@ private:
                 }
             } 
 
-            else if (cv::countNonZero(green_mask) > 1000) {
+            else if (cv::countNonZero(green_mask) > 200) {
                 cv::Rect arrow_rect;  // Declare rectangle to store arrow bounding box
                 std::string arrow_dir = detectTriangles(green_mask, arrow_rect);  // Pass both parameters
                 if (arrow_dir != "none") {
@@ -119,14 +155,11 @@ private:
                     RCLCPP_INFO(this->get_logger(), "Detected: Arrow (%s)", arrow_dir.c_str());
                     
                     // Optional: Draw arrow bounding box for debugging
-                    /*
-                    cv::Mat arrow_debug = frame.clone();
-                    cv::rectangle(arrow_debug, arrow_rect, cv::Scalar(255, 0, 0), 2);
-                    cv::imshow("Arrow Bounding Box", arrow_debug);
-                    */
+                    /**/
+                    
                 }
             }
-            else if (cv::countNonZero(yellow_mask) > 1000) {
+            else if (cv::countNonZero(yellow_mask) > 400) {
                 sign_msg.data = "parking";
                 RCLCPP_INFO(this->get_logger(), "Detected: Parking Sign");
             }
@@ -156,7 +189,7 @@ private:
         cv::findContours(mask.clone(), contours, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
 
         for (const auto& contour : contours) {
-            if (cv::contourArea(contour) < 1000) continue;
+            if (cv::contourArea(contour) < 500) continue;
 
             // Get bounding rect
             out_rect = cv::boundingRect(contour);
@@ -218,6 +251,7 @@ private:
                     return "left";
                 }
             } else {
+                /*
                 // Vertical arrow - compare top/bottom halves
                 cv::Mat top_half = mask(cv::Rect(out_rect.x, out_rect.y, 
                                             out_rect.width, out_rect.height/2));
@@ -231,13 +265,16 @@ private:
                 // Cross-validate with tip position
                 bool tip_is_top = (tip.y < center.y);
                 bool pixels_suggest_top = (top_pixels < bottom_pixels);
-
+                */
+                return "up";
                 // Final decision
+                /*
                 if (pixels_suggest_top) {
                     return "down";
                 } else {
                     return "up";
                 }
+                    */
             }
 
            
