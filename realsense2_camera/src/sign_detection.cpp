@@ -63,7 +63,7 @@ private:
             // Remove noise from low red range using XOR
             //cv::bitwise_xor(red_mask, noise_mask_red, red_mask);
 
-            cv::Mat kernel_red = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(7, 7));  // Bigger than green's (5x5)
+            cv::Mat kernel_red = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(9, 9));  // Bigger than green's (5x5)
             //cv::Mat kernel_red2 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));  // Bigger than green's (5x5)
             cv::morphologyEx(red_mask, red_mask, cv::MORPH_OPEN, kernel_red);   // Remove small noise first
             cv::morphologyEx(red_mask, red_mask, cv::MORPH_CLOSE, kernel_red);  // Fill larger holes
