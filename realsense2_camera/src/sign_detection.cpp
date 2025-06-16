@@ -54,7 +54,8 @@ private:
 
             cv::Mat yellow_mask, green_mask, red_mask, noise_mask_green, noise_mask_red;
 
-            cv::inRange(hsv, cv::Scalar(145, 128, 109), cv::Scalar(180, 255, 255), red_mask);  // Main red range       // Red (low)
+            //cv::inRange(hsv, cv::Scalar(145, 128, 109), cv::Scalar(180, 255, 255), red_mask);  // Main red range       // Red (low)
+            cv::inRange(hsv, cv::Scalar(101, 120, 255), cv::Scalar(180, 230, 255), red_mask);  // Main red range       // Red (low)
 
             // Noise mask for red (H:7-13)
             //cv::inRange(hsv, cv::Scalar(7, 154, 46), cv::Scalar(13, 255, 255), noise_mask_red);
@@ -77,18 +78,18 @@ private:
 
 
    
-            cv::inRange(hsv, cv::Scalar(25, 117, 90), cv::Scalar(75, 255, 255), yellow_mask);
+            cv::inRange(hsv, cv::Scalar(0, 28, 94), cv::Scalar(104, 255, 255), yellow_mask);
 
 
             // Original green mask (your desired range)
             //cv::inRange(hsv, cv::Scalar(53, 141, 43), cv::Scalar(95, 255, 255), green_mask);
-            cv::inRange(hsv, cv::Scalar(43, 212, 119), cv::Scalar(85, 255, 255), green_mask);
+            cv::inRange(hsv, cv::Scalar(55, 11, 106), cv::Scalar(128, 255, 255), green_mask);
             // Noise mask (range you want to exclude)
             //cv::inRange(hsv, cv::Scalar(86, 141, 43), cv::Scalar(95, 255, 255), noise_mask_green);
-            cv::inRange(hsv, cv::Scalar(43, 212, 119), cv::Scalar(85, 250, 255), noise_mask_green);
+            //cv::inRange(hsv, cv::Scalar(43, 212, 119), cv::Scalar(85, 250, 255), noise_mask_green);
 
             // Remove overlapping noise using XOR
-            cv::bitwise_xor(green_mask, noise_mask_green, green_mask);
+            //cv::bitwise_xor(green_mask, noise_mask_green, green_mask);
 
             cv::Mat kernel1 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));
             cv::morphologyEx(green_mask, green_mask, cv::MORPH_CLOSE, kernel1);  // Fill holes
