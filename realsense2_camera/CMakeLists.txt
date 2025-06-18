@@ -156,6 +156,10 @@ set(SOURCES
 add_executable(sign_detection src/sign_detection.cpp)
 ament_target_dependencies(sign_detection rclcpp cv_bridge sensor_msgs OpenCV)
 
+add_executable(sign_test src/sign_test.cpp)
+ament_target_dependencies(sign_test rclcpp cv_bridge sensor_msgs OpenCV)
+
+
 if (BUILD_ACCELERATE_GPU_WITH_GLSL)
   list(APPEND SOURCES src/gl_gpu_processing.cpp)
 endif()
@@ -384,6 +388,7 @@ if(BUILD_TESTING)
 endif()
 
 install(TARGETS sign_detection DESTINATION lib/${PROJECT_NAME})
+install(TARGETS sign_test DESTINATION lib/${PROJECT_NAME})
 
 # Ament exports
 ament_export_include_directories(include)

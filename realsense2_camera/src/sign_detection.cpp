@@ -32,7 +32,7 @@ private:
             // Now convert to HSV
             cv::cvtColor(frame, hsv, cv::COLOR_BGR2HSV);
 
-            //debugMaskPixels(hsv, frame);
+            debugMaskPixels(hsv, frame);
 
 
             // Replace (x, y) with a pixel coordinate from your yellow sign
@@ -55,18 +55,27 @@ private:
             cv::Mat yellow_mask, green_mask, red_mask, noise_mask_green, noise_mask_red;
 
             //cv::inRange(hsv, cv::Scalar(145, 128, 109), cv::Scalar(180, 255, 255), red_mask);  // Main red range       // Red (low)
-            cv::inRange(hsv, cv::Scalar(101, 120, 255), cv::Scalar(180, 230, 255), red_mask);  // Main red range       // Red (low)
+            
+            //cv::inRange(hsv, cv::Scalar(101, 120, 255), cv::Scalar(180, 230, 255), red_mask);  // Main red range       // Red (low)
+
+            cv::inRange(hsv, cv::Scalar(113, 110, 255), cv::Scalar(180, 255, 255), red_mask);
+            // Noise mask (range you want to exclude)
+            //cv::inRange(hsv, cv::Scalar(86, 141, 43), cv::Scalar(95, 255, 255), noise_mask_green);
+            //cv::inRange(hsv, cv::Scalar(43, 212, 119), cv::Scalar(85, 250, 255), noise_mask_green);
+
+            // Remove overlapping noise using XOR
+            //cv::bitwise_xor(green_mask, noise_mask_green, green_mask);
 
             // Noise mask for red (H:7-13)
-            //cv::inRange(hsv, cv::Scalar(7, 154, 46), cv::Scalar(13, 255, 255), noise_mask_red);
+            cv::inRange(hsv, cv::Scalar(113, 110, 255), cv::Scalar(166, 255, 255), noise_mask_red);
 
             // Remove noise from low red range using XOR
-            //cv::bitwise_xor(red_mask, noise_mask_red, red_mask);
+            cv::bitwise_xor(red_mask, noise_mask_red, red_mask);
 
             cv::Mat kernel_red = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(9, 9));  // Bigger than green's (5x5)
             //cv::Mat kernel_red2 = cv::getStructuringElement(cv::MORPH_ELLIPSE, cv::Size(5, 5));  // Bigger than green's (5x5)
             cv::morphologyEx(red_mask, red_mask, cv::MORPH_OPEN, kernel_red);   // Remove small noise first
-            cv::morphologyEx(red_mask, red_mask, cv::MORPH_CLOSE, kernel_red);  // Fill larger holes
+            //cv::morphologyEx(red_mask, red_mask, cv::MORPH_CLOSE, kernel_red);  // Fill larger holes
             
            
             
